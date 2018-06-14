@@ -63,8 +63,6 @@ ENV/
 # Ignore MacOS files
 .DS_Store
 
-# Marketing data is for local use
-marketing/*
 
 # Don't commit data files
 *.csv
@@ -75,5 +73,10 @@ marketing/*
 *.html
 *.mov
 *.mp4
+
+# Project specific stuff
 product.txt
+marketing/*
 OrangeBook.py
+*.out
+
