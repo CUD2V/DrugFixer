@@ -30,16 +30,16 @@
 		<br>';
 
 	
-		$candidates = SpellCorrector::correct($fixword, True);
+		$candidates = NorvigSpellCorrector::correct($fixword, True);
 
 		if (count($candidates) == 0) {
-			echo '<h2> "'.$fixword.'" has no good matches: </h2>';
+			echo '<h2> "'.$fixword.'" has no good matches. </h2>';
 		} else {
 
 
 			echo '<h2> The best match to "'.$fixword.'" is: </h2>';
 			echo '<ul>';
-			echo '<li>'.SpellCorrector::correct($fixword).'</li>';
+			echo '<li>'.NorvigSpellCorrector::correct($fixword).'</li>';
 			echo '</ul>';
 
 

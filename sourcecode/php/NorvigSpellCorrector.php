@@ -177,7 +177,7 @@ class NorvigSpellCorrector {
 			instead of parsing every single execution */
 			if(!file_exists('serialized_dictionary.txt')) {
 				//jself::$NWORDS = self::train(self::words(file_get_contents("big.txt")));
-				self::$NWORDS = self::train(self::words(file_get_contents("drugs.txt")));
+				self::$NWORDS = self::train(self::words(file_get_contents("../../data/drugnames.txt")));
 				$fp = fopen("serialized_dictionary.txt","w+");
 				fwrite($fp,serialize(self::$NWORDS));
 				fclose($fp);
