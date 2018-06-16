@@ -79,4 +79,5 @@ product.txt
 marketing/*
 OrangeBook.py
 *.out
+serialized_dictionary.txt
 
