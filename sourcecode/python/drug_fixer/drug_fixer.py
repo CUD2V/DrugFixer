@@ -1,7 +1,10 @@
 
 from docopt import docopt
 from ndc_codes import ndc_codes
-
+from norvig_spell_correct import norvig_spell_correct
+import os
+import os.path
+import sys
 #--#--#--#--#--#--#--#--#--#--#--#--#--#--#--#--#--#--#--#--#--#--#--#--#--#--#
 
 def main():
@@ -43,9 +46,10 @@ def main():
         nsc = norvig_spell_correct()
 
         if argsdict['--candidates']:
-            return [nsc.candidates(word) for word in argsdict['<word>']]
+            [sys.stdout.write(str(nsc.candidates(word))+' ') for word in argsdict['<word>']]
         else:
-            return [nsc.correction(word) for word in argsdict['<word>']]
+            [sys.stdout.write(nsc.correction(word)+' ') for word in argsdict['<word>']]
+        sys.stdout.write('\n')
 
 
 #--#--#--#--#--#--#--#--#--#--#--#--#--#--#--#--#--#--#--#--#--#--#--#--#--#--#

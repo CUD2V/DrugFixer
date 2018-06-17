@@ -1,11 +1,15 @@
 
+import os
+import os.path
+import re
+
 
 class norvig_spell_correct(object):
     """Adapted from Peter Norvig's blog entry:  https://norvig.com/spell-correct.html"""
 
     def __init__(self, wordlist='drugnames.txt'):
         from collections import Counter
-        self.data_path = '../data'
+        self.data_path = '../../../data'
         self.wordlist= os.path.join(self.data_path, wordlist)
         self.WORDS = Counter(self.words(open(self.wordlist).read()))
 
