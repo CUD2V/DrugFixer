@@ -1,10 +1,11 @@
 
-from docopt import docopt
 from ndc_codes import ndc_codes
 from norvig_spell_correct import norvig_spell_correct
 import os
 import os.path
 import sys
+from docopt import docopt
+
 #--#--#--#--#--#--#--#--#--#--#--#--#--#--#--#--#--#--#--#--#--#--#--#--#--#--#
 
 def main():
@@ -12,50 +13,56 @@ def main():
     usg="""
 
         Usage:
-            drugfix [-u, -v, -d] fetch_wordlist
-            drugfix [-c, -v, -d] <word> ...
+            drugfix [-u, -vd] fetch_wordlist
+            drugfix [-v, -d] cat <word> ...
+            drugfix [-c, -vd] fix <word> ...
 
         Options:
-            -c, --candidates                    Return all candidates for a word's correct spelling
-            -v, --verbose                       Blather more than normal
-            -u, --fetch_url [default: None]     Give a url from which to grab the FDA data
-            -d, --debug                         Give extra debugging info
+            -c, --candidates   Return all candidates for a word's correct spelling
+            -v, --verbose      Blather more than normal
+            -u, --fetch_url    Give a url from which to grab the FDA data
+            -d, --debug        Even more gratuitous blathering
     """
 
 
-    argsdict = docopt(usg)
+    clargs = docopt(usg)
 
-    if argsdict['--debug']:
-        print('\nInput Arguments:\n',argsdict, '\n\n')
+    if clargs['--debug']:
+        print('\nInput Arguments:\n',clargs, '\n\n')
 
-    vb = argsdict['--verbose']
+    vb = clargs['--verbose']
     url = None
-    if argsdict['--fetch_url'] is not 'None':
-        url = argsdict['--fetch_url']
+    if clargs['--fetch_url'] is not 'None':
+        url = clargs['--fetch_url']
 
-    if argsdict['fetch_wordlist']:
+    if clargs['fetch_wordlist']:
         if vb:
             print('Fetching the wordlist.')
 
-        nc = ndc_codes(data_location_url=url, verbose=vb, debug=argsdict['--debug'])
+        nc = ndc_codes(data_location_url=url, verbose=vb, debug=clargs['--debug'])
+
         nc.go_fish()
+
         return
 
-    if len(argsdict['<word>']) >= 1:
+    #if clargs['fix'] and len(clargs['<word>']) >= 1:
+    if clargs['fix'] and len(clargs['<word>']) >= 1:
 
         nsc = norvig_spell_correct()
 
-        if argsdict['--candidates']:
-            [sys.stdout.write(str(nsc.candidates(word))+' ') for word in argsdict['<word>']]
+        if clargs['--candidates']:
+            [sys.stdout.write(str(nsc.candidates(word))+' ') for word in clargs['<word>']]
         else:
-            [sys.stdout.write(nsc.correction(word)+' ') for word in argsdict['<word>']]
+            [sys.stdout.write(nsc.correction(word)+' ') for word in clargs['<word>']]
         sys.stdout.write('\n')
 
+    if clargs['cat'] and len(clargs['<word>']) >= 1:
+
+        for thisword in clargs['<word>']:
+            ndc_category(thisword)
+
 
 #--#--#--#--#--#--#--#--#--#--#--#--#--#--#--#--#--#--#--#--#--#--#--#--#--#--#
 #--#--#--#--#--#--#--#--#--#--#--#--#--#--#--#--#--#--#--#--#--#--#--#--#--#--#
-
 if __name__=="__main__":
-   main()
-
-
+    main()
