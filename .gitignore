@@ -80,4 +80,5 @@ marketing/*
 OrangeBook.py
 *.out
 serialized_dictionary.txt
+*file::memory:*
 
