@@ -3,6 +3,7 @@ import os.path
 import re
 import pandas as pd
 import sqlite3
+import ndc_codes as nc
 
 class category_finder(object):
 
@@ -11,51 +12,20 @@ class category_finder(object):
         self.data_path = '../../../data'
         self.data_file = os.path.join(self.data_path, data_file)
         self.verbose = verbose
-
-
-    #--#--#--#--#--#--#--#--#--#--#--#--#--#--#--#--#--#--#--#--#--#--#--#--#--#--#
-    def _to_sqlite3(self):
-        """ Dump data to in-memory sqlite database. """
-
-        if 'mem_db_conn' not in self.__dict__.keys():
-            self._to_data_frame()
-            self.mem_db_conn = sqlite3.connect('file::memory:?cache=shared')
-            self.product_df.to_sql('product', self.mem_db_conn, if_exists='replace', index=False)
+        self.db_name = os.path.join(self.data_path, 'products.db')
+        self.category_subtypes = ['','MoA', 'EPC', 'PE', 'CI']
 
     #--#--#--#--#--#--#--#--#--#--#--#--#--#--#--#--#--#--#--#--#--#--#--#--#--#--#
-    def execute(self,query):
-        self._to_sqlite3()
+    def _get_db_conn(self):
+        """Dump data to sqlite database. """
 
-        try:
-            with self.mem_db_conn:
-                cur = self.mem_db_conn.cursor()
-                cur.execute(query)
-                results = cur.fetchall()
+        if 'db_conn' not in self.__dict__.keys():
 
-                if self.verbose:
-                    print(results)
-                return results
+            try:
+                self.db_conn = sqlite3.connect(self.db_name)
 
-        except Exception as why:
-            print("Exception: ",why)
-            return False
-
-
-
-    #--#--#--#--#--#--#--#--#--#--#--#--#--#--#--#--#--#--#--#--#--#--#--#--#--#--#
-    def _to_data_frame(self):
-
-        # 'ISO-8859-1' is encoding for German--many companies making drugs have
-        # umlauts, etc in the names
-
-        if 'product.txt' in os.listdir(self.data_path):
-
-            self.product_df = pd.read_table(os.path.join(self.data_path, 'product.txt'),  encoding='ISO-8859-1')
-
-            return self.product_df
-
-        else:
-            print("product.txt doesn't appear to be in the archive.  Run >> python drug_fixer.py fetch_wordlist ")
+            except Exception as why:
+                print(why, '\nError loading db. Ensure database is in \n {}'.format(self.db_name))
 
 
     #--#--#--#--#--#--#--#--#--#--#--#--#--#--#--#--#--#--#--#--#--#--#--#--#--#--#
@@ -73,46 +43,47 @@ class category_finder(object):
 
         """
 
-        self.get_category(drugname)
+        if typename in self.category_subtypes:
+            self.get_category(drugname)
 
-        for thisdrug in self.pharmaclasses.keys():
-            self.pharmaclasses[thisdrug] = [xx for xx in self.pharmaclasses[thisdrug] if xx.endswith(typename+']')]
+            for thisdrug in self.pharmaclasses.keys():
+                self.pharmaclasses[thisdrug] = [xx for xx in self.pharmaclasses[thisdrug] if xx.endswith(typename+']')]
+        else:
+            raise ValueError('Invalid subtype. Must be in list: '+self.category_subtypes)
 
 
     #--#--#--#--#--#--#--#--#--#--#--#--#--#--#--#--#--#--#--#--#--#--#--#--#--#--#
     def get_MoA(self, drugname):
         """Return only Method of Action (MoA) classes associated with drugname"""
-
-        return self._get_filtered_categories(self, drugname, typename='MoA')
+        self._get_filtered_categories(drugname, typename='MoA')
 
 
     #--#--#--#--#--#--#--#--#--#--#--#--#--#--#--#--#--#--#--#--#--#--#--#--#--#--#
     def get_EPC(self, drugname):
         """Return only Established Pharmalogic Class (EPC) classes associated with drugname."""
 
-        return self._get_filtered_categories(self, drugname, typename='EPC')
+        self._get_filtered_categories(drugname, typename='EPC')
 
 
     #--#--#--#--#--#--#--#--#--#--#--#--#--#--#--#--#--#--#--#--#--#--#--#--#--#--#
     def get_PE(self, drugname):
         """Return only Physiologic Effect (PE) classes associated with drugname"""
 
-        return _get_filtered_categories(self, drugname, typename='PE')
+        self._get_filtered_categories(drugname, typename='PE')
 
 
     #--#--#--#--#--#--#--#--#--#--#--#--#--#--#--#--#--#--#--#--#--#--#--#--#--#--#
     def get_CI(self, drugname):
         """Return only Chemical/Ingredient (CI) classes associated with drugname."""
 
-        return self._get_filtered_categories(self, drugname, typename='Chemical/Ingredient')
+        self._get_filtered_categories(drugname,typename='CI')
 
 
     #--#--#--#--#--#--#--#--#--#--#--#--#--#--#--#--#--#--#--#--#--#--#--#--#--#--#
     def get_category(self, drugname):
 
-        # This is a bit faster than get_category_pandasql.  When used as a library,
-        # it will be much faster becasue it caches the data in memory.
-        # The in-memory db uses the table name "product"
+        # This is a bit faster than get_category_pandasql.
+        # The db uses the table name "product"
 
         self.cat_query = '''
                 SELECT *
@@ -126,11 +97,11 @@ class category_finder(object):
                 '''.format(drugname.lower(), drugname.lower(),drugname.lower())
 
         pharmaclasses = {}
-        self._to_sqlite3()
+        self._get_db_conn()
 
         try:
-            with self.mem_db_conn:
-                query_results = pd.read_sql_query(self.cat_query, self.mem_db_conn)
+            with self.db_conn:
+                query_results = pd.read_sql_query(self.cat_query, self.db_conn)
 
         except Exception as why:
             print("Exception: ",why)
@@ -145,7 +116,8 @@ class category_finder(object):
             pharmaclasses[thisdrug[1].PROPRIETARYNAME] = list(set(thisdrug[1].PHARM_CLASSES.split(',')))
 
         self.pharmaclasses = pharmaclasses
-        return pharmaclasses
+
+        return self.pharmaclasses
 
 
     #--#--#--#--#--#--#--#--#--#--#--#--#--#--#--#--#--#--#--#--#--#--#--#--#--#--#
@@ -180,6 +152,21 @@ class category_finder(object):
 
         self.pharmaclasses = pharmaclasses
         return pharmaclasses
+
+
+    #--#--#--#--#--#--#--#--#--#--#--#--#--#--#--#--#--#--#--#--#--#--#--#--#--#--#
+    def get_category_wikilinks(self, drugname):
+
+        self.get_EPC(drugname)
+        self.wikilinks = {}
+        for thisdrugkey in self.pharmaclasses.keys():
+            thislist = []
+            for thiscat in self.pharmaclasses[thisdrugkey]:
+                thiswikilink = 'http://www.wikipedia.com/wiki/index.php?search='
+                thiswikilink += thiscat.split('[')[0].strip()
+                thislist.append(thiswikilink.replace(' ','_').lower())
+            self.wikilinks[thisdrugkey] = thislist
+
 
 
 #--#--#--#--#--#--#--#--#--#--#--#--#--#--#--#--#--#--#--#--#--#--#--#--#--#--#

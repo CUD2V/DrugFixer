@@ -4,6 +4,7 @@ import os
 import os.path
 import zipfile
 import requests
+import sqlite3
 
 #--#--#--#--#--#--#--#--#--#--#--#--#--#--#--#--#--#--#--#--#--#--#--#--#--#--#
 class ndc_codes(object):
@@ -24,12 +25,7 @@ class ndc_codes(object):
         self.data_path = '../../../data/'
         self.data_file_name = self.data_location_url.split('/')[-1]
         self.data_full_path = os.path.join(self.data_path, self.data_file_name)
-
-
-#--#--#--#--#--#--#--#--#--#--#--#--#--#--#--#--#--#--#--#--#--#--#--#--#--#--#
-    def go_fish(self):
-        self.get_drug_names()
-        self.write_drug_list()
+        self.db_name = os.path.join(self.data_path, 'products.db')
 
 
 #--#--#--#--#--#--#--#--#--#--#--#--#--#--#--#--#--#--#--#--#--#--#--#--#--#--#
@@ -59,13 +55,13 @@ class ndc_codes(object):
 
 
 #--#--#--#--#--#--#--#--#--#--#--#--#--#--#--#--#--#--#--#--#--#--#--#--#--#--#
-    def to_data_frame(self):
+    def _to_data_frame(self):
 
         # 'ISO-8859-1' is encoding for German--many companies making drugs have
         # umlauts, etc in the names
 
         if 'product.txt' in os.listdir(self.data_path):
-            if self.verbose:
+            if self.debug:
                 print('Converting to data frame.')
 
             self.product_df = pd.read_table(os.path.join(self.data_path, 'product.txt'),  encoding='ISO-8859-1')
@@ -74,6 +70,37 @@ class ndc_codes(object):
 
         else:
             print("product.txt doesn't appear to be in the archive :( ")
+
+#--#--#--#--#--#--#--#--#--#--#--#--#--#--#--#--#--#--#--#--#--#--#--#--#--#--#
+    def _to_sqlite3(self):
+        """Dump data to sqlite database. """
+        if self.verbose:
+            print('Dumping data to sqlite3 db.')
+
+        self._to_data_frame()
+
+        self.db_conn = sqlite3.connect(self.db_name)
+        self.product_df.to_sql('product', self.db_conn, if_exists='replace', index=False)
+
+
+#--#--#--#--#--#--#--#--#--#--#--#--#--#--#--#--#--#--#--#--#--#--#--#--#--#--#
+    def execute(self,query):
+        self._to_sqlite3()
+
+        try:
+            with self.db_conn:
+                cur = self.db_conn.cursor()
+                cur.execute(query)
+                results = cur.fetchall()
+
+                if self.verbose:
+                    print(results)
+                return results
+
+        except Exception as why:
+            print("Exception: ",why)
+            return False
+
 
 
 
@@ -85,26 +112,26 @@ class ndc_codes(object):
 
 
 #--#--#--#--#--#--#--#--#--#--#--#--#--#--#--#--#--#--#--#--#--#--#--#--#--#--#
-    def load_data(self):
-        if 'product.txt' in os.listdir(self.data_path):
+    def manage_data(self, overwrite=True):
+        """Get source file from FDA, unzip, etc, and dump to sqlite3 db."""
+        if overwrite:
             if self.verbose:
-                print('Loading NDC Database.')
-            self.to_data_frame()
-
-        else:
-            if self.verbose:
-                print("product.txt not found--fetching data from FDA website.")
+                print("Fetching data from FDA website.")
 
             self.download_raw_file()
             self.unzip_file()
-            self.to_data_frame()
 
-            if self.drugs_only:
-                self.filter_data_frame()
+        self._to_sqlite3()
+
+        self.get_drug_names()
+        self.write_drug_list()
+
+
 
 #--#--#--#--#--#--#--#--#--#--#--#--#--#--#--#--#--#--#--#--#--#--#--#--#--#--#
     def get_drug_names(self):
-        self.load_data()
+        self._to_data_frame()
+
         #self.name_columns = ['PRODUCTTYPENAME', 'PROPRIETARYNAME', 'NONPROPRIETARYNAME', 'SUBSTANCENAME']
         self.name_columns = ['PROPRIETARYNAME', 'NONPROPRIETARYNAME', 'SUBSTANCENAME']
         self.all_names = []
@@ -130,9 +157,8 @@ class ndc_codes(object):
 
 
         # De-duplicate
-        self.drugnames = list(set(self.drugnames))
-
-        #self.drugnames.sort()
+        self.drugnames = [str(xx) for xx in set(self.drugnames)]
+        self.drugnames.sort()
 
 
 #--#--#--#--#--#--#--#--#--#--#--#--#--#--#--#--#--#--#--#--#--#--#--#--#--#--#
@@ -143,7 +169,7 @@ class ndc_codes(object):
 
                 if type(word[1]) == type(""):
                     try:
-                        if self.verbose:
+                        if self.debug:
                             print('Word: ', word[0],'=', word[1])
 
                         ff.write(word[1].strip().replace(',','\n').replace(';','\n').lower().strip()+'\n')
