@@ -65,24 +65,37 @@ def main():
 
     if clargs['cat'] and len(clargs['<word>']) >= 1:
         cf = category_finder()
+        nsc = norvig_spell_correct()
 
         for thisword in clargs['<word>']:
-            if clargs['--wikipedia']:
-                thiscat = cf.get_category_wikilinks(thisword)
-                if clargs['--sep_match']:
-                    pprint.pprint(cf.wikilinks)
-                else:
-                    pprint.pprint(cf.wikilinks['ALL'])
+
+            # Check to see if the word is spelled correctly
+            # If not, offer a suggestion
+            if not nsc.known([thisword]):
+                candidates=nsc.candidates(thisword)
+                print(thisword, 'not in dictionary.')
+
+                if thisword not in candidates:
+                    print(thisword, '\tDid you mean: ', str(candidates),'?')
 
 
             else:
-                thiscat = cf.get_category(thisword)
-                if clargs['--sep_match']:
-                    pprint.pprint(cf.pharmaclasses)
-                else:
-                    pprint.pprint(cf.pharmaclasses['ALL'])
+                print(thisword+':')
+                if clargs['--wikipedia']:
+                    thiscat = cf.get_category_wikilinks(thisword)
+                    if clargs['--sep_match']:
+                        pprint.pprint(cf.wikilinks)
+                    else:
+                        pprint.pprint(cf.wikilinks['ALL'])
 
-        cf.db_conn.close()
+                else:
+                    thiscat = cf.get_category(thisword)
+                    if clargs['--sep_match']:
+                        pprint.pprint(cf.pharmaclasses)
+                    else:
+                        pprint.pprint(cf.pharmaclasses['ALL'])
+
+                #cf.db_conn.close()
 
         return
 
