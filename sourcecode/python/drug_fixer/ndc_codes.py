@@ -37,6 +37,7 @@ class ndc_codes(object):
         if self.verbose:
             print('Fetching NDC Database from FDA Website.')
 
+        # Get NDC codes table from FDA
         r = requests.get(self.data_location_url, allow_redirects=True)
         open(self.data_full_path, 'wb').write(r.content)
 

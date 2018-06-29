@@ -15,11 +15,10 @@ def main():
 
         Usage:
             drug_fixer.py [-duv]   fetch
-            drug_fixer.py [-dpsvw] cat <word> ...
+            drug_fixer.py [-dsvw] cat <word> ...
             drug_fixer.py [-cdv]   fix <word> ...
 
         Options:
-            -p, --pretty       Print results beautifilly
             -c, --candidates   Return all candidates for a word's correct spelling
             -v, --verbose      Blather more than normal
             -d, --debug        Even more gratuitous blathering
@@ -27,6 +26,8 @@ def main():
             -u, --fetch_url    For fetches, Give a url from which to grab the FDA data
             -s, --sep_match    For category serches, separate results by drugname
             -w, --wikipedia    For category searches, include Wikipedia URL in results
+
+
     """
 
 
@@ -46,6 +47,8 @@ def main():
         nc = ndc_codes(data_location_url=url,
                         verbose=clargs['--verbose'],
                         debug=clargs['--debug'])
+
+
 
         nc.manage_data()
         return
@@ -80,7 +83,7 @@ def main():
 
 
             else:
-                print(thisword+':')
+
                 if clargs['--wikipedia']:
                     thiscat = cf.get_category_wikilinks(thisword)
                     if clargs['--sep_match']:
