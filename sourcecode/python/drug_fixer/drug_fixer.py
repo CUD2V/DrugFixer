@@ -24,7 +24,7 @@ def main():
             -d, --debug        Even more gratuitous blathering
 
             -u, --fetch_url    For fetches, Give a url from which to grab the FDA data
-            -s, --sep_match    For category serches, separate results by drugname
+            -s, --sep_match    For category searches, separate results by drugname
             -w, --wikipedia    For category searches, include Wikipedia URL in results
 
 
