@@ -34,7 +34,8 @@ class norvig_spell_correct(object):
     def candidates(self, word):
         "Generate possible spelling corrections for word."
         word = word.lower()
-        return (self.known([word]) or self.known(self.edits1(word)) or self.known(self.edits2(word)) or [word])
+
+        return (self.known([word]) or self.known(self.edits1(word)) or self.known(self.edits2(word)) or  self.known(self.levenshtein_top_N(word)))
 
 
     def known(self, words):
@@ -60,6 +61,14 @@ class norvig_spell_correct(object):
         return (e2 for e1 in self.edits1(word) for e2 in self.edits1(e1))
 
 
+    def levenshtein_top_N(self,word,N=3):
+
+        from nltk import distance as dd
+        word = word.lower()
+        all_measures = [(dd.edit_distance(word, xx,transpositions=True), xx) for xx in self.WORDS.keys()]
+        all_measures.sort()
+        wordset = set([xx[1] for xx in all_measures[0:N]])
+        return wordset
 
 
 
